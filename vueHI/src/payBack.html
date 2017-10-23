@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="format-detection" content="telephone=no" />
+    <title>支付</title>
+    <link rel="stylesheet" href="./assets/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="./assets/css/common.css" />
+    <link rel="stylesheet" href="./assets/css/product.css" />
+</head>
+<body>
+<div class="container-fluid padding-container applayResult">
+    <div class="pay-callback">
+        <!-- success S -->
+        <div id="paySuccess">
+            <div class="pay-callback-state pay-callback-success"><i></i></div>
+            <div class="pay-callback-detail">
+                <div class="pay-callback-detail-t applay-title">
+                    <h4 id="insuranceNames"></h4>
+                    <h3 id="totalPremiums"></h3>
+                </div>
+                <ul class="pay-callback-detail-list">
+                    <li class="row">
+                        <div class="col-xs-5">支付方式</div><div class="col-xs-7 applay-type"></div>
+                    </li>
+                    <li class="row">
+                        <div class="col-xs-5">交易单号</div><div class="col-xs-7 applay-number"></div>
+                    </li>
+                    <li class="row">
+                        <div class="col-xs-5">下单时间</div><div class="col-xs-7 applay-time"></div>
+                    </li>
+                    <li class="row">
+                        <div class="col-xs-5">投保人</div><div class="col-xs-7 applay-name"></div>
+                    </li>
+                </ul>
+                <div class="pay-callback-detail-prod">
+                    <div class="pay-callback-prod-logo"><img src="./assets/images/allianz_logo.png" /></div>
+                    <div class="pay-callback-prod-info">安联财产保险</div>
+                </div>
+            </div>
+        </div>
+        <!-- success E -->
+        <!-- fail S -->
+        <div id="payFail">
+            <div class="pay-callback-state pay-callback-fail">
+                <i></i>
+                <h4>支付失败</h4>
+                <h5 id="failReason">交易已关闭</h5>
+            </div>
+            <div class="pay-callback-btn">
+                <a class="btn" id="toPayBtn">去支付</a>
+            </div>
+        </div>
+        <!-- fail E -->
+        <!-- wating S -->
+        <div id="payWating">
+            <div class="pay-callback-state pay-callback-fail">
+                <i></i>
+                <h4>支付结果确认中</h4>
+                <h5>聪聪正在玩命确认中，请过会儿刷新查看</h5>
+            </div>
+            <div class="pay-callback-btn row">
+                <div class="col-xs-6"><a class="btn reConfirms" href="javascript:void(0);" onclick="confirmsOrder()">催促确认</a></div>
+                <div class="col-xs-6"><a class="btn"  id="refreshLoad" href="javascript:void(0);" onclick="getApplayInfo()">刷新</a></div>
+            </div>
+        </div>
+        <!-- wating E -->
+    </div>
+</div>
+<div class="pay-bacground" id="payback">
+    <div class="loadApp">下载APP</div>
+</div>
+
+<script src="../../../js/jquery-1.8.3.min.js"></script>
+<script src="../../../publicjs/public.js"></script>
+<script src="../../../publicjs/load.js"></script>
+
+<script>
+    $(function(){
+
+        $("body #top").css("display","none");
+        getApplayInfo();
+        $("#refreshLoad").attr("onclick","getApplayInfo()");
+        $(".loadApp").on("click",function(){
+            var u = navigator.userAgent;
+            var isAndroid = u.indexOf('Android') > -1 || u.indexOf('Adr') > -1; //android终端
+            var isiOS = !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/); //ios终端
+            if(isAndroid==true){
+                 window.open("http://a.app.qq.com/o/simple.jsp?pkgname=com.netease.financial");
+            };
+            if(isiOS){
+                window.open("https://itunes.apple.com/us/app/fu-cong-she/id1055272293?l=zh&ls=1&mt=8");
+            };
+        })
+        /**清除标题**/
+        var a=setInterval(function(){
+            $("body #top").css("display","none");
+            $("body .topholeplace").css("height","0px");
+        },100);
+
+    })
+    /**判断支付是否成功并显示相应页面**/
+    var agreementId = localStorage.myagreementId;
+      //  var agreementId="842448808";
+    function  getApplayInfo(){
+        if(agreementId){
+            console.log(agreementId);
+            $("#refreshLoad").attr("onclick","");
+
+            var requestUrl =  BAF.contextPath + "/sgw/v1/agreements/ayb/" + agreementId + "?agreementId=" + agreementId;
+            doGet(requestUrl, null).done(function(res) {
+                if(res){
+                    var insuredPerson = JSON.parse(res.aybAgreementInfo.aybPolicy);
+                    var policyHolder = insuredPerson.policyHolder;
+                   // var agreementStatus = res.aybAgreementInfo.agreementStatus;
+                    var agreementStatus = "Payed_Pending";
+                    console.log(insuredPerson);
+                    $("#insuranceNames").text(insuredPerson.insuranceName);
+                    $("#totalPremiums").text("￥"+insuredPerson.totalPremium);
+                    $(".applay-type").text(insuredPerson.payType );
+                    $(".applay-number").text(insuredPerson.policyNum);
+                    $(".applay-time").text(insuredPerson.payTime);
+                    $(".applay-name").text(policyHolder.insuredName);
+
+                    if(agreementStatus=="Active" || agreementStatus=="Payed"){
+                        $("#paySuccess").show();
+                        $("#payWating").hide();
+                    }else if(agreementStatus=="Payed_Error"){
+                        $("#payFail").show();
+                    }else if(agreementStatus=="Payed_Pending"){
+                        $("#payWating").show();
+                        $("#refreshLoad").attr("onclick","getApplayInfo()");
+                    }else{
+                      alertDefault("内部错误：合同状态异常"+agreementStatus+":"+agreementId);
+                    }
+                }else{
+                    alertDefault("合同异常"+agreementId);
+                }
+            }).fail(function(msg) {
+                alertDefault(JSON.stringify(msg));
+            });
+        }else{
+
+            $("#payback").show();
+        }
+    }
+    /**确认催单**/
+    var sendSum=0;
+    function confirmsOrder(){
+        var requestUrl =  BAF.contextPath + "/sgw/v1/activities/clientActivity";
+        var datas=JSON.stringify({activityType : 'HIPayResultConfirm',refKey:  agreementId});
+
+        //是否含有点击事件
+
+            doPost(requestUrl, datas).done(function(res) {
+                if (res) {
+                    sendSum++;
+                    if(sendSum>2 || sendSum==2 ){
+                        nativeView.toast("催促确认已发送，请耐心等待");
+                    }else{
+                        nativeView.toast("您的催促确认已发送");
+                    }
+                }
+            }).fail(function(msg) {
+                console.log(msg);
+            });
+    }
+</script>
+</body>
+</html>

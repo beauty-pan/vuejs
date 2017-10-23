@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+<meta name="format-detection" content="telephone=no" />
+<title>智慧健康</title>
+<link rel="stylesheet" href="assets/css/bootstrap.min.css" />
+<link rel="stylesheet" href="assets/css/common.css" />
+<link rel="stylesheet" href="assets/css/product.css" />
+</head>
+<body>
+	<div class="container-fluid padding-container detailContent">
+		<footer>
+			<div class="row">
+				<div class="col-xs-12"><div class="btn btn-danger applayFee" style="display: none;">￥600 去支付</div></div>
+			</div>
+			<div id="payDIv"></div>
+		</footer>
+	</div>
+<script src="../../../js/jquery-1.8.3.min.js"></script>
+<script src="../../../publicjs/public.js"></script>
+<script src="../../../publicjs/load.js"></script>
+
+<script>
+$(function(){
+
+	var agreementId="845122768";
+	var url= BAF.contextPath+"/sgw/v1/agreements/ayb/"+agreementId+"?agreementId="+agreementId;
+	doGet(url,null).done(function (msg) {
+		stopLoading();
+		if(msg){
+			var html='';
+			var moneylist=''
+			var insuredPerson=JSON.parse(msg.aybAgreementInfo.aybPolicy);
+			var insuredRelation=JSON.parse(msg.aybAgreementInfo.aybPolicy).insuredList[0];
+			console.log(insuredPerson);
+			var payUrl=msg.aybAgreementInfo.aybPolicy;
+			console.log(msg.aybAgreementInfo.agreementStatus);
+			if(msg.aybAgreementInfo.agreementStatus=="Payed_Pending"){ //待支付
+				$(".applayFee").show();
+				$(".applayFee").on("click",function(){
+					var from=insuredPerson.form;
+					$("#payDIv").html(from);
+					stopLoading();
+				})
+			}
+			var relationship;
+			switch(insuredRelation.policyholderInsuredRelation) {
+				case "01":
+					relationship = "本人";
+					break;
+				case "02":
+					relationship = "父母";
+					break;
+				case "03":
+					relationship = "配偶";
+					break;
+				case "04":
+					relationship = "子女";
+					break;
+			}
+			if(insuredPerson.vehicleCoverageList){
+				for(var i=0;i<insuredPerson.vehicleCoverageList.length;i++){
+					moneylist=moneylist+"<div class='row'><div class='col-xs-6'>"+insuredPerson.vehicleCoverageList[i].kindName+"</div> " +
+							"<div class='col-xs-6'>"+insuredPerson.vehicleCoverageList[i].modeCode+"</div></div>"
+				}
+			}
+
+			html+= "<div class='ayb-detail-box'>"
+					+"<h3><img src='assets/images/ayb_allianz_logo.png' /></h3>"
+					+"<ul>" +
+					"<li>"
+					+"<h4>保单信息</h4>" +
+					"<div class='row'><div class='col-xs-4'>保险名称</div>" +
+					"<div class='col-xs-8'>"+insuredPerson.insuranceName+"</div>";
+			html+="<div class='col-xs-4'>保单号</div>";
+			html+="<div class='col-xs-8'>"+insuredPerson.policyNum+"</div>";
+			html+="<div class='col-xs-4'>保险期间</div>";
+			html+="<div class='col-xs-8'>"+msg.aybAgreementInfo.effectiveDate+"~"+msg.aybAgreementInfo.expirationDate+"</div>";
+
+
+			html+="</div></li><li><h4>投保人</h4>" +
+					"<div class='row'>" +
+					"<div class='col-xs-6'>投保人姓名</div>" +
+					"<div class='col-xs-6'>"+insuredPerson.policyHolder.insuredName+"</div> " +
+					"<div class='col-xs-6'>身份证号</div>" +
+					"<div class='col-xs-6'>"+insuredPerson.policyHolder.identifyNumber+"</div>" +
+					"<div class='col-xs-6'>手机号</div><div class='col-xs-6'>"+insuredPerson.policyHolder.mobile+"</div>" +
+					"<div class='col-xs-6'>邮箱</div><div class='col-xs-6'>"+insuredPerson.policyHolder.email+"</div> </div> " +
+					"</li>"
+					+ " <li> " +"<h4>被保人</h4>"+
+					"<div class='row'> " +
+					"<div class='col-xs-6'>与投保人关系</div>" +
+					" <div class='col-xs-6'>"+relationship+"</div> " +
+					"<div class='col-xs-6'>姓名</div> " +
+					"<div class='col-xs-6'>"+insuredPerson.insuredList[0].insuredName+"</div>" +
+					" <div class='col-xs-6'>身份证号</div> " +
+					"<div class='col-xs-6'>"+insuredPerson.insuredList[0].identifyNumber+"</div> " +
+					"</div> " +
+					"</li>" +
+					" <li> <h4>保额/保费</h4> "
+					+ moneylist+
+					"</li>" +
+					" </ul> " +
+					"<h5 class='row'> <div class='col-xs-6'>保费</div> " +
+					"<div class='col-xs-6'>￥"+insuredPerson.totalPremium+"</div></h5></div> "
+			$(".detailContent").append(html);
+			$(".applayFee").text("￥"+insuredPerson.totalPremium+"去支付");
+		}
+	}).fail(function(XMLRequest){
+		console.log(XMLRequest);
+	})
+})
+
+
+</script>
+</body>
+</html>
